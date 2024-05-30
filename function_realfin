@@ -1,0 +1,38 @@
+import numpy as np
+import cv2
+
+def detect(image):
+    print(image.shape)
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower_black = np.array([0, 0, 0])
+    upper_black = np.array([180, 255, 45])
+    mask_black = cv2.inRange(hsv_image, lower_black, upper_black)
+    contours, _ = cv2.findContours(mask_black, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        cnt = max(contours, key=cv2.contourArea)
+        mask_inner = np.zeros_like(mask_black, dtype=np.uint8)
+        imm=cv2.drawContours(image, cnt, -1, (0,255,0), 4)
+        cv2.imshow('1',imm)
+        cv2.waitKey(0)
+        cv2.drawContours(mask_inner, [cnt], -1, color=255, thickness=-1)
+        mask_inner = mask_inner > 0
+        mask_red = ((hsv_image[:, :, 0] > 170) | (hsv_image[:, :, 0] < 10)) & (hsv_image[:, :, 1] > 50) & (hsv_image[:, :, 2] > 50)
+        mask_green = (hsv_image[:, :, 0] > 50) & (hsv_image[:, :, 0] < 70) & (hsv_image[:, :, 1] > 50) & (hsv_image[:, :, 2] > 50)
+        mask_blue = (hsv_image[:, :, 0] > 110) & (hsv_image[:, :, 0] < 130) & (hsv_image[:, :, 1] > 50) & (hsv_image[:, :, 2] > 50)
+        print(np.sum(mask_inner))
+        red_pixels = np.sum(mask_red & mask_inner)
+        green_pixels = np.sum(mask_green & mask_inner)
+        blue_pixels = np.sum(mask_blue & mask_inner)
+        print(np.sum(mask_black&mask_inner))
+        print(red_pixels)
+        print(red_pixels+green_pixels+blue_pixels)
+        if red_pixels > green_pixels and red_pixels > blue_pixels:
+            return "R"
+        elif green_pixels > blue_pixels:
+            return "G"
+        else:
+            return "B"    
+
+filename='g4.PNG'
+image=cv2.imread(filename)
+print(detect(image))

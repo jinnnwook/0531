@@ -1,0 +1,54 @@
+import numpy as np
+import cv2
+
+def detect(image):
+    img=image
+    gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    ret,th=cv2.threshold(gray,10,255,cv2.THRESH_BINARY)
+    contours,hierachy=cv2.findContours(th,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+
+    mi,ma,_,_=cv2.minMaxLoc(gray)
+    str=cv2.convertScaleAbs(gray,alpha=255/(ma-mi),beta=-255*mi/(ma-mi))
+    ret,th=cv2.threshold(str,28,255,cv2.THRESH_BINARY)
+    contours,hierachy=cv2.findContours(th,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower_black = np.array([0, 0, 0])
+    upper_black = np.array([180, 255, 50])
+    mask_black = cv2.inRange(hsv_image, lower_black, upper_black)
+    contours, _ = cv2.findContours(mask_black, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    cnt = max(contours, key=cv2.contourArea)
+
+    mask_inner = np.zeros_like(mask_black, dtype=np.uint8)
+    cv2.drawContours(mask_inner, [cnt], -1, color=255, thickness=-1)
+    cv2.imshow('wow',mask_inner)
+    cv2.waitKey(0)
+
+    contour=contours[0]
+    rect=cv2.minAreaRect(contour)
+    w,h=int(rect[1][0]),int(rect[1][1])
+    box=cv2.boxPoints(rect)
+    src=np.array(box,dtype='float32')
+    dst=np.array([[0,h-1],[0,0],[w-1,0],[w-1,h-1]],dtype="float32")
+    m=cv2.getPerspectiveTransform(src,dst)
+    res=cv2.warpPerspective(img,m,(w,h))
+    hsv=cv2.cvtColor(res,cv2.COLOR_BGR2HSV)
+    R=cv2.inRange(hsv,(0, 0, 0),(20, 255, 255))
+    G=cv2.inRange(hsv,(25, 0, 0),(80, 255, 255))
+    B=cv2.inRange(hsv,(100, 0, 0),(130, 255, 255))
+    Rc=np.count_nonzero(R)
+    Gc=np.count_nonzero(G)
+    Bc=np.count_nonzero(B)
+    print(Rc,Gc,Bc)
+    M=max(Rc,Gc,Bc)
+    if Rc==M:
+        return 'R'
+    elif Gc==M:
+        return 'G'
+    else:
+        return 'B'
+    
+filename='test2.PNG'
+image=cv2.imread(filename)
+print(detect(image))
